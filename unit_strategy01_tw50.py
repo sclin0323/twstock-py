@@ -1,5 +1,6 @@
 import config_sys
 import pandas as pd
+import numpy as np
 
 from utils_common import fetch_strategy_raw_data
 
@@ -31,8 +32,24 @@ for tw_stock_id in config_sys.tw_stock_ids:
     raw_df["buyOrsell"] = buyOrsell
     raw_df[raw_df["buyOrsell"].isin([-1]) | raw_df["buyOrsell"].isin([1])]
 
-    res_df = pd.concat([res_df, raw_df])
+
+    # 先過濾0 & 計算出場的close
+    raw_df_filtered = raw_df[raw_df['buyOrsell'] != 0]
+    raw_df_filtered['B_Close'] = raw_df_filtered["Close"].shift(-1)
+
+    # 再過濾 -1 & 計算盈虧 和 盈虧%
+    raw_df_filtered_again = raw_df_filtered[raw_df_filtered['buyOrsell'] != -1]
+    
+    raw_df_filtered_again['winOrloss'] = np.where(raw_df_filtered_again['Close'] < raw_df_filtered_again['B_Close'], 1, -1)
+    raw_df_filtered_again['percentage'] = (raw_df_filtered_again['B_Close'] - raw_df_filtered_again['Close']) / raw_df_filtered_again['Close']
+
+    #raw_df_filtered_again[:, 'winOrloss'] = np.where(raw_df_filtered_again['Close'] < raw_df_filtered_again['B_Close'], 1, -1)
+    #raw_df_filtered_again['percentage'] = (raw_df_filtered_again['B_Close'] - raw_df_filtered_again['Close']) / raw_df_filtered_again['Close']
+
+    print(raw_df_filtered_again)
+    res_df = pd.concat([res_df, raw_df_filtered_again])
 
 
-res_df.to_csv('./output/20240327.csv', index=False)
+
+res_df.to_csv('./output/20240401.csv', index=False)
     
